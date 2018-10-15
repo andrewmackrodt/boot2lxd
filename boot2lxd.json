@@ -1,0 +1,79 @@
+{
+  "variables": {
+    "boot2lxd_user": "",
+    "boot2lxd_pass": "",
+    "os_codename": "",
+    "os_version": "",
+    "os_arch": "",
+    "os_basepath": ""
+  },
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "boot_command": [
+        "<esc><wait>",
+        "<esc><wait>",
+        "<enter><wait>",
+        "/install/vmlinuz",
+        " auto",
+        " console-setup/ask_detect=false",
+        " console-setup/layoutcode=us",
+        " console-setup/modelcode=pc105",
+        " debconf/frontend=noninteractive",
+        " debian-installer=en_US",
+        " fb=false",
+        " initrd=/install/initrd.gz",
+        " kbd-chooser/method=us",
+        " keyboard-configuration/layout=USA",
+        " keyboard-configuration/variant=USA",
+        " locale=en_US",
+        " netcfg/get_domain=vm",
+        " netcfg/get_hostname=boot2lxd",
+        " grub-installer/bootdev=/dev/sda",
+        " noapic",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/templates/preseed.cfg",
+        " -- ",
+        "<enter>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 10240,
+      "guest_os_type": "Ubuntu_64",
+      "headless": true,
+      "http_directory": "build",
+      "output_directory": "build/output",
+      "iso_url": "{{ user `os_basepath` }}/ubuntu-{{ user `os_version` }}-server-{{ user `os_arch` }}.iso",
+      "iso_checksum_type": "sha256",
+      "iso_checksum_url": "{{ user `os_basepath` }}/SHA256SUMS",
+      "ssh_username": "{{ user `boot2lxd_user` }}",
+      "ssh_private_key_file": "files/insecure_private_key",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+      "shutdown_command": "sudo -S shutdown -P now",
+      "guest_additions_path": "VBoxGuestAdditions_{{ .Version }}.iso",
+      "vm_name": "boot2lxd-ubuntu-{{ user `os_codename` }}{{ user `os_version` }}-{{ user `os_arch` }}",
+      "vboxmanage": [
+        ["modifyvm", "{{.Name}}", "--memory", "1024"],
+        ["modifyvm", "{{.Name}}", "--cpus", "2"]
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "build",
+      "destination": "/tmp"
+    },
+    {
+      "type": "shell",
+      "inline": "sudo /bin/bash /tmp/build/files/provision.sh"
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "vagrant",
+        "output": "boot2lxd-ubuntu-{{ user `os_codename` }}{{ user `os_version` }}-{{ user `os_arch` }}.box"
+      }
+    ]
+  ]
+}
