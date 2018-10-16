@@ -1,5 +1,7 @@
 Vagrant.configure(2) do |config|
-  config.vm.box = "file://" + `ls -1t *.box | head -n1`.strip!
+  box_name = `cd build/boxes && ls -1t *.box | head -n1`.strip!
+
+  config.vm.box = "file://#{box_name}"
   config.vm.network "forwarded_port", guest: 8443, host: 8443, auto_correct: true
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
@@ -26,13 +28,51 @@ Vagrant.configure(2) do |config|
     p.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     p.customize ["modifyvm", :id, "--audio", "none"]
 
+    # Add a second disk to system using vagrant ()https://gist.github.com/leifg/4713995)
+    zfs_disk = File.join(File.dirname(File.expand_path(__FILE__)), 'storage', box_name.chomp('.box') + '-disk1.vdi')
+    unless File.exist?(zfs_disk)
+      p.customize ['createhd', '--filename', zfs_disk, '--format', 'VDI', '--size', 80 * 1024]
+    end
+    p.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 0, '--device', 1, '--type', 'hdd', '--medium', zfs_disk]
+
     override.vm.network "private_network", type: "dhcp"
   end
 
-  config.vm.provision "provision", type: "shell", :run => "always", :privileged => false, inline: <<-"EOF"
-    uname -a
-    df -h
-    free -m
-    groups
+  config.vm.provision "provision", type: "shell", :run => "always", :privileged => true, inline: <<-"EOF"
+    if zpool list | grep -q default; then
+      zpool list
+      exit 0
+    fi
+
+    cat <<SEED | lxd init --preseed
+config:
+  core.https_address: '[::]:8443'
+  core.trust_password: boot2lxd
+storage_pools:
+- name: default
+  driver: zfs
+  config:
+    source: /dev/sdb
+networks:
+- name: lxdbr0
+  type: bridge
+  config:
+    ipv4.address: auto
+    ipv6.address: none
+profiles:
+- name: default
+  devices:
+    eth0:
+      name: eth0
+      nictype: bridged
+      parent: lxdbr0
+      type: nic
+    root:
+      path: /
+      pool: default
+      type: disk
+SEED
+
+    zpool list
   EOF
 end

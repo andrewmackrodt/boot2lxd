@@ -1,5 +1,6 @@
 .idea/
 .env
 *.box
+*.vdi
 packer_cache/
 Vagrantfile

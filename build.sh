@@ -6,8 +6,8 @@ IFS=$'\n\t'
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 echo "Emptying build folder" >&2
-find build -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
-find build -type f -not -name .gitignore -exec rm -f {} \;
+find build -mindepth 1 -maxdepth 1 -type d -not -name boxes -exec rm -rf {} \;
+find build -maxdepth 1 -type f -not -name .gitignore -exec rm -f {} \;
 mkdir -p build/files build/templates
 
 # copy .dist files if the target doesn't exist

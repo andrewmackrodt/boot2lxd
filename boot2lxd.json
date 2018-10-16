@@ -72,7 +72,7 @@
     [
       {
         "type": "vagrant",
-        "output": "boot2lxd-ubuntu-{{ user `os_codename` }}{{ user `os_version` }}-{{ user `os_arch` }}.box"
+        "output": "build/boxes/boot2lxd-ubuntu-{{ user `os_codename` }}{{ user `os_version` }}-{{ user `os_arch` }}.box"
       }
     ]
   ]
